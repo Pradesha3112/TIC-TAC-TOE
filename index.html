@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4, #fbc2eb);
+            font-family: Arial, sans-serif;
+        }
+
+        .home-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .title {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .button {
+            display: inline-block;
+            margin: 10px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.2s ease, background-color 0.3s ease;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background: linear-gradient(45deg, #0056b3, #007bff);
+            transform: scale(1.1);
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 10px;
+            margin-top: 20px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            border: 2px solid #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .cell:hover {
+            background-color: #f0f0f0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            display: none;
+        }
+
+        .popup .message {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .popup .button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .popup .button:hover {
+            background: linear-gradient(45deg, #0056b3, #007bff);
+        }
+
+        @media (max-width: 600px) {
+            .game-board {
+                grid-template-columns: repeat(3, 80px);
+                grid-gap: 5px;
+            }
+
+            .cell {
+                width: 80px;
+                height: 80px;
+                font-size: 1.5rem;
+            }
+        }
+
+        .mode-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .mode-popup .button {
+            display: block;
+            margin: 10px auto;
+            width: 80%;
+        }
+    </style>
+</head>
+<body>
+    <div class="home-container">
+        <div class="title">Welcome to Tic Tac Toe</div>
+        <button class="button" id="newGameButton">New Game</button>
+        <div class="game-board hidden" id="gameBoard"></div>
+        <div class="controls hidden" id="controls">
+            <button class="button" id="homeButton">Home</button>
+            <button class="button" id="restartButton">Restart</button>
+        </div>
+    </div>
+
+    <div class="popup" id="resultPopup">
+        <div class="message" id="popupMessage"></div>
+        <button class="button" id="popupButton">OK</button>
+    </div>
+
+    <div class="mode-popup hidden" id="modePopup">
+        <div class="title">Choose Game Mode</div>
+        <button class="button" id="playerMode">Play with Another Player</button>
+        <button class="button" id="computerMode">Play with Computer</button>
+    </div>
+
+    <script>
+        let currentPlayer = 'X';
+        let gameState = Array(9).fill(null);
+        let isComputerMode = false;
+
+        const newGameButton = document.getElementById('newGameButton');
+        const gameBoard = document.getElementById('gameBoard');
+        const resultPopup = document.getElementById('resultPopup');
+        const popupMessage = document.getElementById('popupMessage');
+        const popupButton = document.getElementById('popupButton');
+        const homeButton = document.getElementById('homeButton');
+        const restartButton = document.getElementById('restartButton');
+        const controls = document.getElementById('controls');
+        const modePopup = document.getElementById('modePopup');
+        const playerMode = document.getElementById('playerMode');
+        const computerMode = document.getElementById('computerMode');
+
+        function createBoard() {
+            gameBoard.innerHTML = '';
+            gameState = Array(9).fill(null);
+            gameBoard.classList.remove('hidden');
+            controls.classList.remove('hidden');
+            resultPopup.style.display = 'none';
+
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.setAttribute('data-index', i);
+                cell.addEventListener('click', handleCellClick);
+                gameBoard.appendChild(cell);
+            }
+        }
+
+        function handleCellClick(event) {
+            const cell = event.target;
+            const index = cell.getAttribute('data-index');
+
+            if (gameState[index] || !gameBoard) return;
+
+            gameState[index] = currentPlayer;
+            cell.textContent = currentPlayer;
+
+            if (checkWinner()) {
+                showPopup(`${currentPlayer} wins!`);
+                return;
+            } else if (gameState.every(cell => cell !== null)) {
+                showPopup('It\'s a draw!');
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+
+            if (isComputerMode && currentPlayer === 'O') {
+                computerMove();
+            }
+        }
+
+        function computerMove() {
+            const emptyCells = gameState.map((val, index) => val === null ? index : null).filter(val => val !== null);
+            const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+
+            if (randomIndex !== undefined) {
+                const cell = gameBoard.children[randomIndex];
+                gameState[randomIndex] = 'O';
+                cell.textContent = 'O';
+
+                if (checkWinner()) {
+                    showPopup('O wins!');
+                } else if (gameState.every(cell => cell !== null)) {
+                    showPopup('It\'s a draw!');
+                }
+
+                currentPlayer = 'X';
+            }
+        }
+
+        function checkWinner() {
+            const winningConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+
+            return winningConditions.some(condition => {
+                const [a, b, c] = condition;
+                return gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c];
+            });
+        }
+
+        function showPopup(message) {
+            popupMessage.textContent = message;
+            resultPopup.style.display = 'block';
+        }
+
+        popupButton.addEventListener('click', () => {
+            resultPopup.style.display = 'none';
+            createBoard();
+        });
+
+        newGameButton.addEventListener('click', () => {
+            modePopup.classList.remove('hidden');
+        });
+
+        playerMode.addEventListener('click', () => {
+            isComputerMode = false;
+            modePopup.classList.add('hidden');
+            createBoard();
+        });
+
+        computerMode.addEventListener('click', () => {
+            isComputerMode = true;
+            modePopup.classList.add('hidden');
+            createBoard();
+        });
+
+        homeButton.addEventListener('click', () => {
+            gameBoard.classList.add('hidden');
+            controls.classList.add('hidden');
+            newGameButton.textContent = 'New Game';
+            newGameButton.classList.remove('hidden');
+        });
+
+        restartButton.addEventListener('click', createBoard);
+    </script>
+</body>
+</html>
